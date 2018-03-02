@@ -99,6 +99,9 @@ let _ = IntTree.run_tests () ;;
 let _ = IntListQueue.run_tests () ;;
 let _ = IntTreeQueue.run_tests () ;;
 let _ = IntHeapQueue.run_tests () ;;
+let _ = assert (heapsort [] = [])
+let _ = assert (treesort [] = [])
+let _ = assert (selectionsort [] = [])
 let _ = assert (heapsort [1;-2;3;4;5] = [-2;1;3;4;5])
 let _ = assert (treesort [1;-2;3;4;5] = [-2;1;3;4;5])
 let _ = assert (selectionsort [1;-2;3;4;5] = [-2;1;3;4;5])

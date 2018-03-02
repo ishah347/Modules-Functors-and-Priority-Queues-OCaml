@@ -413,9 +413,9 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
     let rec fix (t : tree) : tree =
       let replace_top element tr =
         match tr with 
-        | Leaf e1 -> Leaf element
-        | OneBranch(e1, e2) -> OneBranch(element, e2)
-        | TwoBranch(b, e1, t1, t2) -> TwoBranch(b, element, t1, t2) in
+        | Leaf _ -> Leaf element
+        | OneBranch(_, e2) -> OneBranch(element, e2)
+        | TwoBranch(b, _, t1, t2) -> TwoBranch(b, element, t1, t2) in
       match t with 
       | Leaf e1 -> Leaf e1
       | OneBranch(e1, e2) ->
@@ -423,17 +423,17 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
                   | Equal | Less -> OneBranch(e1, e2)
                   | Greater -> OneBranch(e2, e1))
       | TwoBranch(b, e1, t1, t2) ->
-                 (match C.compare (get_top t1) (get_top t2) with 
+                 match C.compare (get_top t1) (get_top t2) with 
                   | Equal | Less ->
                     (match C.compare e1 (get_top t1) with                      
                      | Equal | Less -> TwoBranch(b, e1, t1, t2)
-                     | Greater -> 
+                     | Greater ->
                          TwoBranch(b, get_top t1, fix (replace_top e1 t1), t2))
-                  | Greater -> 
+                  | Greater ->
                     (match C.compare e1 (get_top t2) with                      
                      | Equal | Less -> TwoBranch(b, e1, t1, t2)
-                     | Greater -> 
-                         TwoBranch(b, get_top t2, t1, fix(replace_top e1 t2))))
+                     | Greater ->
+                         TwoBranch(b, get_top t2, t1, fix(replace_top e1 t2)))
 
     let test_fix () =
       let x = C.generate () in
@@ -469,7 +469,11 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
       assert (fix (TwoBranch(Even, x, Leaf y, Leaf x')) 
         = (TwoBranch(Even, x, Leaf y, Leaf x')));
       assert (fix (TwoBranch(Odd, z, Leaf y, Leaf x)) 
-        = (TwoBranch(Odd, z, Leaf y, Leaf x)))         
+        = (TwoBranch(Odd, z, Leaf y, Leaf x)));        
+      assert (fix (TwoBranch (Even, y, OneBranch(x, y), OneBranch(z, z))) 
+          = TwoBranch(Even, z, OneBranch(x, y), OneBranch(z, y)));
+      assert (fix (TwoBranch(Odd, x, OneBranch(z, y), Leaf y)) 
+        = TwoBranch(Odd, z, OneBranch(x, y), Leaf y))
 
     let extract_tree (q : queue) : tree =
       match q with
@@ -499,8 +503,7 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
           let last, q2' = get_last t2 in
           (match q2' with
           | Empty -> last, Tree (OneBranch (e1, get_top t1))
-          | Tree t2' -> 
-              last, Tree (TwoBranch(Odd, e1, t1, extract_tree q2')))
+          | Tree t2' -> last, Tree (TwoBranch(Odd, e1, t1, t2')))
       | TwoBranch(Odd, e1, t1, t2) -> 
           let last, q1' = get_last t1 in
           last, Tree (TwoBranch(Even, e1, extract_tree q1', t2))
@@ -509,7 +512,6 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
       let x = C.generate () in
       let y = C.generate () in
       let z = C.generate () in
-      let w = C.generate () in
       assert (get_last (Leaf x) = (x, Empty));
       assert (get_last (OneBranch(x, y)) = (y, Tree (Leaf x)));
       assert (get_last (TwoBranch(Even, x, Leaf y, Leaf z)) 
@@ -573,41 +575,26 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
 
     let test_take () =
       let x = C.generate () in
-      let x' = x in
       let x2 = C.generate_gt x in
       let x3 = C.generate_gt x2 in
       let x4 = C.generate_gt x3 in
-      assert (take (add x4 empty) = (x4, empty));
-      assert (take (add x4 (add x3 empty)) 
-        = (x3, (add x4 empty)));
-      assert (take (add x4 (add x3 (add x2 empty))) 
-        = (x2, (add x4 (add x3 empty))));
-
+      assert (take (add x3 empty) = (x3, empty));
+      assert (take (add x3 (add x2 empty)) 
+        = (x2, (add x3 empty)));
+      let _, q = take (add x3 (add x2 empty)) in
+      assert (size (extract_tree q));
+      assert (take (add x3 (add x2 (add x empty))) 
+        = (x, (add x3 (add x2 empty))));
+      let _, q = take (add x3 (add x2 (add x empty))) in
+      assert (size (extract_tree q));
+      assert (take (add x2 (add x (add x3 empty))) 
+        = (x, add x3 (add x2 empty))); 
       assert (take (Tree (TwoBranch(Odd, x, 
                        OneBranch(x2, x3), Leaf x4))) 
         = (x, Tree (TwoBranch (Even, x2, Leaf x3, Leaf x4))));
-
       assert (take (Tree (TwoBranch(Odd, x, TwoBranch(Even, x2, Leaf x4, Leaf x3),
                        OneBranch(x2, x4)))) 
-        = (x, Tree (TwoBranch (Even, x2, OneBranch(x3, x4), OneBranch(x2, x4)))));
-
-      assert (add x (Tree (TwoBranch (Even, x2, OneBranch(x3, x4), OneBranch(x2, x4)))) 
-          = Tree (TwoBranch(Odd, x, TwoBranch(Even, x2, Leaf x4, Leaf x3),
-                       OneBranch(x2, x4))))
-
-      (*assert (take (add x4 (add x3 (add x2 (add x' (add x empty))))) 
-        = (x, (add x4 (add x3 (add x2 (add x' empty))))));
-      assert (take (add x4 (add x3 (add x2 (add x empty)))) 
-        = (x, (add x4 (add x3 (add x2 empty)))));
-
-      assert (take (add x4 (add x3 (add x2 empty))) 
-        = (x2, (add x4 (add x3 empty))));
-      
-
-      assert (take (add x4 (add x3 empty)) 
-        = (x3, (add x4 empty)));
-      assert (take (add x4 empty) = (x4, empty))*)
-
+        = (x, Tree (TwoBranch (Even, x2, OneBranch(x3, x4), OneBranch(x2, x4)))))
 
     let run_tests () = 
       test_get_top ();
