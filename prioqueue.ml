@@ -77,20 +77,23 @@ module ListQueue (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
 
     type queue = elt list
 
-    let empty : queue =
-      failwith "ListQueue empty not implemented"
+    let empty : queue = []
 
     let is_empty (q : queue) : bool =
-      failwith "ListQueue is_empty not implemented"
+      q = empty
 
-    let add (e : elt) (q : queue) : queue =
-      failwith "ListQueue add not implemented"
+    let rec add (e : elt) (q : queue) : queue =
+      match q with
+      | [] -> [e]
+      | hd :: tl -> 
+          match C.compare e hd with
+          | Less -> e :: q
+          | Equal | Greater -> hd :: add e tl 
 
     let take (q : queue) : elt * queue =
-      failwith "ListQueue take not implemented"
-
-    let run_tests () =
-      failwith "ListQueue run_tests not implemented"
+      match q with
+      | [] -> raise QueueEmpty
+      | hd :: tl -> hd, tl
 
     (* IMPORTANT: Don't change the implementation of to_string. *)
     let to_string (q: queue) : string =
@@ -100,7 +103,56 @@ module ListQueue (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
         | [hd] -> (C.to_string hd)
         | hd :: tl -> (C.to_string hd) ^ ";" ^ (to_string' tl)
       in
-      let qs = to_string' q in "[" ^ qs ^ "]"
+      let qs = to_string' q in "[" ^ qs ^ "]"  
+
+    let test_empty_and_is_empty () = 
+      let q = empty in
+      assert (q = []);
+      assert (is_empty q);
+      let x = C.generate () in
+      let q = add x q in 
+      assert (not (is_empty q));
+      let _, q = take q in
+      assert (is_empty q)
+
+    let test_add () =
+      let x = C.generate () in
+      let q = add x empty in 
+      assert (q = [x]);
+      let q = add x q in
+      assert (q = [x; x]);
+      let y = C.generate_gt x in
+      let q = add y q in
+      assert (q = [x; x; y]);
+      let z = C.generate_lt x in
+      let q = add z q in
+      assert (q = [z; x; x; y]);
+      let y' = C.generate_gt y in
+      let q = add y' q in
+      assert (q = [z; x; x; y; y']);
+      let z' = C.generate_lt z in
+      let q = add z' q in
+      assert (q = [z'; z; x; x; y; y'])
+
+    let test_take () =
+      let x = C.generate () in
+      let x' = x in
+      let x2 = C.generate_gt x in
+      let x3 = C.generate_gt x2 in
+      let x4 = C.generate_gt x3 in
+      assert (take (add x4 (add x3 (add x2 (add x (add x' empty))))) 
+        = (x', [x; x2; x3; x4]));
+      assert (take (add x4 (add x3 (add x2 (add x empty)))) = (x, [x2;x3;x4]));
+      assert (take (add x4 (add x3 (add x2 empty))) = (x2, [x3; x4]));
+      assert (take (add x4 (add x3 empty)) = (x3, [x4]));
+      assert (take (add x4 empty) = (x4, empty))
+
+    let run_tests () =
+      test_empty_and_is_empty ();
+      test_add ();
+      test_take ();
+      ()
+
   end
 
 (*......................................................................
@@ -118,8 +170,6 @@ code. That way you'll be able to submit the problem set so that it
 compiles cleanly.
 ......................................................................*)
 
-(* You'll want to uncomment this before working on this section! *)
-(*
 module TreeQueue (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
   struct
     exception QueueEmpty
@@ -130,8 +180,83 @@ module TreeQueue (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
 
     (* Implement the remainder of the module. *)
 
+    type elt = C.t
+
+    type queue = T.collection
+
+    let empty : queue = T.empty
+
+    let is_empty (q : queue) : bool =
+      q = empty
+
+    let add (e : elt) (q : queue) : queue =
+      T.insert e q
+
+    let take (q : queue) : elt * queue =
+      let open T in
+      getmin q, delete (getmin q) q
+
+    let to_string (q: queue) : string =
+      T.to_string q    
+
+    let test_empty_and_is_empty () = 
+      let q = empty in
+      assert (q = T.empty);
+      assert (is_empty q);
+      let x = C.generate () in
+      let q = add x q in 
+      assert (not (is_empty q));
+      let _, q = take q in
+      assert (is_empty q)  
+
+    let test_add () =
+      let open T in
+      let x = C.generate () in
+      let q = add x empty in
+      assert (search x q);
+      let x' = x in 
+      let q = add x' q in
+      assert (search x' q);
+      assert (getmin q = x);
+      assert (getmax q = x);
+      let y = C.generate_gt x in
+      let q = add y q in
+      assert (search y q);
+      let y' = y in
+      let q = add y' q in
+      assert (search y' q); 
+      assert (getmax q = y);  
+      let z = C.generate_lt x in
+      let q = add z q in
+      assert (search z q);
+      let z' = z in
+      let q = add z' q in
+      assert (search z' q); 
+      assert (getmin q = z)  
+
+    let test_take () = 
+      let x = C.generate () in
+      let x' = x in
+      let x2 = C.generate_gt x in
+      let x3 = C.generate_gt x2 in
+      let x4 = C.generate_gt x3 in
+      assert (take (add x4 (add x3 (add x2 (add x (add x' empty))))) 
+        = (x', (add x4 (add x3 (add x2 (add x empty))))));
+      assert (take (add x4 (add x3 (add x2 (add x empty)))) 
+        = (x, (add x4 (add x3 (add x2 empty)))));
+      assert (take (add x4 (add x3 (add x2 empty))) 
+        = (x2, (add x4 (add x3 empty))));
+      assert (take (add x4 (add x3 empty)) 
+        = (x3, (add x4 empty)));
+      assert (take (add x4 empty) = (x4, empty))
+
+    let run_tests () =
+      test_empty_and_is_empty ();
+      test_add ();
+      test_take ();
+      ()
+
   end
- *)
 
 (*......................................................................
 Problem 4: Implementing BinaryHeap
@@ -265,16 +390,86 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
     pattern match)
     ..................................................................*)
     let get_top (t : tree) : elt =
-      failwith "BinaryHeap get_top not implemented"
+      match t with
+      | Leaf e1 | OneBranch(e1, _) | TwoBranch(_, e1, _, _) -> e1
 
+    let test_get_top () = 
+      let x = C.generate () in
+      let y = C.generate () in
+      assert (get_top (Leaf x) = x);
+      assert (get_top (OneBranch(x, y)) = x);
+      assert (get_top (OneBranch(y, x)) = y);
+      assert (get_top (TwoBranch(Odd, x, Leaf y, Leaf y)) = x);
+      assert (get_top (TwoBranch(Even, y, Leaf x, Leaf x)) = y);
+      assert (get_top (TwoBranch(Odd, x, OneBranch(y, y), Leaf y)) = x);
+      assert (get_top (TwoBranch(Even, y, Leaf x, OneBranch(x, x))) = y)
+          
     (*..................................................................
     Takes a tree, and if the top node is greater than its children,
     fixes it. If fixing it results in a subtree where the node is
     greater than its children, then you must (recursively) fix this
     tree too.
     ..................................................................*)
-    let fix (t : tree) : tree =
-      failwith "BinaryHeap fix not implemented"
+    let rec fix (t : tree) : tree =
+      let replace_top element tr =
+        match tr with 
+        | Leaf e1 -> Leaf element
+        | OneBranch(e1, e2) -> OneBranch(element, e2)
+        | TwoBranch(b, e1, t1, t2) -> TwoBranch(b, element, t1, t2) in
+      match t with 
+      | Leaf e1 -> Leaf e1
+      | OneBranch(e1, e2) ->
+                 (match C.compare e1 e2 with
+                  | Equal | Less -> OneBranch(e1, e2)
+                  | Greater -> OneBranch(e2, e1))
+      | TwoBranch(b, e1, t1, t2) ->
+                 (match C.compare (get_top t1) (get_top t2) with 
+                  | Equal | Less ->
+                    (match C.compare e1 (get_top t1) with                      
+                     | Equal | Less -> TwoBranch(b, e1, t1, t2)
+                     | Greater -> 
+                         TwoBranch(b, get_top t1, fix (replace_top e1 t1), t2))
+                  | Greater -> 
+                    (match C.compare e1 (get_top t2) with                      
+                     | Equal | Less -> TwoBranch(b, e1, t1, t2)
+                     | Greater -> 
+                         TwoBranch(b, get_top t2, t1, fix(replace_top e1 t2))))
+
+    let test_fix () =
+      let x = C.generate () in
+      let x' = x in
+      let y = C.generate_gt x in
+      let y' = y in
+      let z = C.generate_lt x in
+      let z' = z in
+      assert (fix (Leaf x) = Leaf x);
+      assert (fix (OneBranch(x, x')) = (OneBranch(x, x')));
+      assert (fix (OneBranch(x, y)) = (OneBranch(x, y)));
+      assert (fix (OneBranch(x, z)) = (OneBranch(z, x)));
+      assert (fix (TwoBranch(Odd, x, Leaf x', Leaf x')) 
+        = (TwoBranch(Odd, x, Leaf x', Leaf x')));
+      assert (fix (TwoBranch(Even, x, Leaf z, Leaf z')) 
+        = (TwoBranch(Even, z, Leaf x, Leaf z')));
+      assert (fix (TwoBranch(Even, x, OneBranch(z, x'), OneBranch(z, x'))) 
+        = (TwoBranch(Even, z, OneBranch(x, x'), OneBranch(z, x'))));
+      assert (fix (TwoBranch(Odd, x, Leaf y, Leaf y')) 
+        = (TwoBranch(Odd, x, Leaf y, Leaf y')));
+      assert (fix (TwoBranch(Even, x, Leaf x', Leaf y)) 
+        = (TwoBranch(Even, x, Leaf x', Leaf y)));
+      assert (fix (TwoBranch(Odd, x, Leaf z, Leaf x')) 
+        = (TwoBranch(Odd, z, Leaf x, Leaf x')));
+      assert (fix (TwoBranch(Odd, x, OneBranch(z, z'), Leaf x')) 
+        = (TwoBranch(Odd, z, OneBranch(z', x), Leaf x')));
+      assert (fix (TwoBranch(Even, y, Leaf x, Leaf y)) 
+        = (TwoBranch(Even, x, Leaf y, Leaf y)));
+      assert (fix (TwoBranch(Odd, x, Leaf x', Leaf z)) 
+        = (TwoBranch(Odd, z, Leaf x', Leaf x)));
+      assert (fix (TwoBranch(Odd,y, Leaf y', TwoBranch(Even,x,Leaf z,Leaf z'))) 
+        = (TwoBranch(Odd, x, Leaf y', TwoBranch(Even, z, Leaf y, Leaf z'))));
+      assert (fix (TwoBranch(Even, x, Leaf y, Leaf x')) 
+        = (TwoBranch(Even, x, Leaf y, Leaf x')));
+      assert (fix (TwoBranch(Odd, z, Leaf y, Leaf x)) 
+        = (TwoBranch(Odd, z, Leaf y, Leaf x)))         
 
     let extract_tree (q : queue) : tree =
       match q with
@@ -296,8 +491,42 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
     brought down into a new node at the bottom of the tree. *This* is
     the node that we want you to return.
     ..................................................................*)
-    let get_last (t : tree) : elt * queue =
-      failwith "BinaryHeap get_last not implemented"
+    let rec get_last (t : tree) : elt * queue =    
+      match t with 
+      | Leaf e1 -> e1, Empty
+      | OneBranch(e1, e2) -> e2, Tree (Leaf e1)
+      | TwoBranch(Even, e1, t1, t2) -> 
+          let last, q2' = get_last t2 in
+          (match q2' with
+          | Empty -> last, Tree (OneBranch (e1, get_top t1))
+          | Tree t2' -> 
+              last, Tree (TwoBranch(Odd, e1, t1, extract_tree q2')))
+      | TwoBranch(Odd, e1, t1, t2) -> 
+          let last, q1' = get_last t1 in
+          last, Tree (TwoBranch(Even, e1, extract_tree q1', t2))
+
+    let test_get_last () = 
+      let x = C.generate () in
+      let y = C.generate () in
+      let z = C.generate () in
+      let w = C.generate () in
+      assert (get_last (Leaf x) = (x, Empty));
+      assert (get_last (OneBranch(x, y)) = (y, Tree (Leaf x)));
+      assert (get_last (TwoBranch(Even, x, Leaf y, Leaf z)) 
+        = (z, Tree(OneBranch(x, y))));
+      assert (get_last (TwoBranch(Even, x, Leaf y, OneBranch(z, z))) 
+        = (z, Tree(TwoBranch(Odd, x, Leaf y, Leaf z))));
+      assert (get_last (TwoBranch(Odd, x, OneBranch(z, z), Leaf y)) 
+        = (z, Tree(TwoBranch(Even, x, Leaf y, Leaf z))));
+      assert (get_last (TwoBranch(Odd, x, 
+                       TwoBranch(Even, x, Leaf y, Leaf z), Leaf y)) 
+        = (z, Tree(TwoBranch(Even, x, OneBranch(x, y), Leaf y))));
+      assert (get_last (TwoBranch(Even, x, 
+                       TwoBranch(Even, x, Leaf y, Leaf z), Leaf y)) 
+        = (y, Tree(OneBranch(x, x))));
+      assert (get_last (TwoBranch(Odd, x, 
+                       OneBranch(y, z), Leaf y)) 
+        = (z, Tree(TwoBranch(Even, x, Leaf y, Leaf y))))
 
     (*..................................................................
     Implements the algorithm described in the writeup. You must finish
@@ -324,11 +553,69 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
              just a OneBranch *)
           | Empty -> (e, Tree (fix (OneBranch (last, get_top t1))))
           | Tree t2' -> (e, Tree (fix (TwoBranch (Odd, last, t1, t2')))))
-          (* Implement the odd case! *)
-          | TwoBranch (Odd, _e, _t1, _t2) ->
-            failwith "BinaryHeap take incomplete"
+      (* Implement the odd case! *)
+      | TwoBranch (Odd, e, t1, t2) ->
+         let (last, q1') = get_last t1 in
+         (e, Tree (fix (TwoBranch (Even, last, extract_tree q1', t2))))
 
-    let run_tests () = failwith "BinaryHeap run_tests not implemented"
+    let rec size (t: tree) : bool =
+      let rec subtree_size subtree =
+        let _, q' = get_last subtree in 
+        match q' with
+        | Empty -> 1
+        | Tree t' -> 1 + subtree_size t'
+      in
+      match t with
+      | Leaf _ -> true
+      | OneBranch(_, _) -> true
+      | TwoBranch(Odd, _, t1, t2) -> subtree_size t1 = (subtree_size t2 + 1) && size t1 && size t2
+      | TwoBranch(Even, _, t1, t2) -> subtree_size t1 = subtree_size t2 && size t1 && size t2
+
+    let test_take () =
+      let x = C.generate () in
+      let x' = x in
+      let x2 = C.generate_gt x in
+      let x3 = C.generate_gt x2 in
+      let x4 = C.generate_gt x3 in
+      assert (take (add x4 empty) = (x4, empty));
+      assert (take (add x4 (add x3 empty)) 
+        = (x3, (add x4 empty)));
+      assert (take (add x4 (add x3 (add x2 empty))) 
+        = (x2, (add x4 (add x3 empty))));
+
+      assert (take (Tree (TwoBranch(Odd, x, 
+                       OneBranch(x2, x3), Leaf x4))) 
+        = (x, Tree (TwoBranch (Even, x2, Leaf x3, Leaf x4))));
+
+      assert (take (Tree (TwoBranch(Odd, x, TwoBranch(Even, x2, Leaf x4, Leaf x3),
+                       OneBranch(x2, x4)))) 
+        = (x, Tree (TwoBranch (Even, x2, OneBranch(x3, x4), OneBranch(x2, x4)))));
+
+      assert (add x (Tree (TwoBranch (Even, x2, OneBranch(x3, x4), OneBranch(x2, x4)))) 
+          = Tree (TwoBranch(Odd, x, TwoBranch(Even, x2, Leaf x4, Leaf x3),
+                       OneBranch(x2, x4))))
+
+      (*assert (take (add x4 (add x3 (add x2 (add x' (add x empty))))) 
+        = (x, (add x4 (add x3 (add x2 (add x' empty))))));
+      assert (take (add x4 (add x3 (add x2 (add x empty)))) 
+        = (x, (add x4 (add x3 (add x2 empty)))));
+
+      assert (take (add x4 (add x3 (add x2 empty))) 
+        = (x2, (add x4 (add x3 empty))));
+      
+
+      assert (take (add x4 (add x3 empty)) 
+        = (x3, (add x4 empty)));
+      assert (take (add x4 empty) = (x4, empty))*)
+
+
+    let run_tests () = 
+      test_get_top ();
+      test_fix ();
+      test_get_last ();
+      test_take ();
+      ()
+
   end
 
 (*......................................................................
@@ -358,22 +645,17 @@ module IntListQueue = (ListQueue(IntCompare) :
 module IntHeapQueue = (BinaryHeap(IntCompare) :
                          PRIOQUEUE with type elt = IntCompare.t)
 
-(* Uncomment this once your TreeQueue implementation is complete
-
 module IntTreeQueue = (TreeQueue(IntCompare) :
                         PRIOQUEUE with type elt = IntCompare.t)
-
-*)
 
 (* Store the whole modules in these variables *)
 let list_module = (module IntListQueue :
                      PRIOQUEUE with type elt = IntCompare.t)
 let heap_module = (module IntHeapQueue :
                      PRIOQUEUE with type elt = IntCompare.t)
-(*
+
 let tree_module = (module IntTreeQueue :
                      PRIOQUEUE with type elt = IntCompare.t)
-*)
 
 (* Implementing sort using generic priority queues. *)
 let sort (m : (module PRIOQUEUE with type elt=IntCompare.t)) (lst : int list) =
@@ -398,9 +680,7 @@ let heapsort = sort heap_module ;;
    implementation is *almost* equivalent to treesort; a real treesort
    relies on self-balancing binary search trees *)
 
-(*
 let treesort = sort tree_module ;;
-*)
 
 (* Sorting with a priority queue with an underlying unordered list
    implementation is equivalent to selection sort! If your
@@ -451,4 +731,4 @@ on average, not in total).  We care about your responses and will use
 them to help guide us in creating future assignments.
 ......................................................................*)
 
-let minutes_spent_on_part () : int = failwith "not provided" ;;
+let minutes_spent_on_part () : int = 720 ;;

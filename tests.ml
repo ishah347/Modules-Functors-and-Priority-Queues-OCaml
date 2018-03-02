@@ -39,11 +39,11 @@ definition of the BinSTree functor.
 So, for instance, we can say:
 ......................................................................*)
 
-type element = IntTree.elt
+(*type element = IntTree.elt
 
 (* And we can say: *)
                  
-let f = IntTree.delete
+let f = IntTree.delete*)
 
 (* But we can't say:
 
@@ -78,7 +78,41 @@ clients of IntTree and other modules that satisfy the BINTREE
 signature.  So, we can run our tests on IntTree with the following
 invocation:
 ......................................................................*)
-let _ = IntTree.run_tests ()
+
+open Order 
+
+open Orderedcoll 
+
+open Prioqueue 
+
+module IntTree = BinSTree(IntCompare)
+module IntListQueue = (ListQueue(IntCompare) :
+                         PRIOQUEUE with type elt = IntCompare.t)
+
+module IntTreeQueue = (TreeQueue(IntCompare) :
+                        PRIOQUEUE with type elt = IntCompare.t)
+
+module IntHeapQueue = (BinaryHeap(IntCompare) :
+                         PRIOQUEUE with type elt = IntCompare.t)
+
+let _ = IntTree.run_tests () ;;
+let _ = IntListQueue.run_tests () ;;
+let _ = IntTreeQueue.run_tests () ;;
+let _ = IntHeapQueue.run_tests () ;;
+let _ = assert (heapsort [1;-2;3;4;5] = [-2;1;3;4;5])
+let _ = assert (treesort [1;-2;3;4;5] = [-2;1;3;4;5])
+let _ = assert (selectionsort [1;-2;3;4;5] = [-2;1;3;4;5])
+let _ = assert (heapsort [1;2;3;4;5] = [1;2;3;4;5])
+let _ = assert (treesort [1;2;3;4;5] = [1;2;3;4;5])
+let _ = assert (selectionsort [1;2;3;4;5] = [1;2;3;4;5])
+let _ = assert (heapsort [0;1;1;0;0] = [0;0;0;1;1])
+let _ = assert (treesort [0;1;1;0;0] = [0;0;0;1;1])
+let _ = assert (selectionsort [0;1;1;0;0] = [0;0;0;1;1])
+let _ = assert (heapsort [-1;-2;-4;-5;-3] = [-5;-4;-3;-2;-1])
+let _ = assert (treesort [-1;-2;-4;-5;-3] = [-5;-4;-3;-2;-1])
+let _ = assert (selectionsort [-1;-2;-4;-5;-3] = [-5;-4;-3;-2;-1])
+
+
 
 (* 
 ........................................................................
