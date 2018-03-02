@@ -82,7 +82,7 @@ module ListQueue (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
     let is_empty (q : queue) : bool =
       q = empty
 
-    (* Adds elt to queue so that it's behind preexisting values < or = to it *)  
+    (* Adds elt to queue so that it's behind preexisting values < or = to it *)
     let rec add (e : elt) (q : queue) : queue =
       match q with
       | [] -> [e]
