@@ -118,13 +118,13 @@ module BinSTree (C : COMPARABLE)
       match t with
       | Leaf -> Branch (Leaf, [x], Leaf)
       | Branch (l, lst, r) -> 
-         match lst with
-         | [] -> failwith "Invalid tree: empty list as node"
-         | hd :: tl -> 
-            match C.compare x hd with
-            | Less -> Branch (insert x l, lst, r)
-            | Greater -> Branch (l, lst, insert x r)
-            | Equal -> Branch (l, x :: lst, r) 
+          match lst with
+          | [] -> failwith "Invalid tree: empty list as node"
+          | hd :: _ -> 
+              match C.compare x hd with
+              | Less -> Branch (insert x l, lst, r)
+              | Greater -> Branch (l, lst, insert x r)
+              | Equal -> Branch (l, x :: lst, r) 
                
     (*..................................................................
     search -- Returns true if the element x is in tree t, else false.
@@ -135,13 +135,13 @@ module BinSTree (C : COMPARABLE)
       match t with
       | Leaf -> false
       | Branch (l, lst, r) -> 
-         match lst with
-         | [] -> failwith "Invalid tree: empty list as node"
-         | hd :: tl -> 
-            match C.compare x hd with
-            | Less -> search x l
-            | Greater -> search x r
-            | Equal -> List.mem x lst
+          match lst with
+          | [] -> failwith "Invalid tree: empty list as node"
+          | hd :: _ -> 
+              match C.compare x hd with
+              | Less -> search x l
+              | Greater -> search x r
+              | Equal -> List.mem x lst
 
     (* pull_min -- A useful function for removing the node with the
        minimum value from a binary tree, returning that node and the
@@ -217,8 +217,8 @@ module BinSTree (C : COMPARABLE)
     let rec getmax (t : tree) : elt =
       match t with
       | Leaf -> raise Empty
-      | Branch (l, v, Leaf) -> List.hd (List.rev v)
-      | Branch (l, v, r) -> getmax r
+      | Branch (_, v, Leaf) -> List.hd (List.rev v)
+      | Branch (_, _, r) -> getmax r
 
     (* to_string -- Generates a string representation of a binary
        search tree, useful for testing! *)
@@ -299,14 +299,20 @@ module BinSTree (C : COMPARABLE)
       let x2 = C.generate_lt x in
       let x3 = C.generate_lt x2 in
       let x4 = C.generate_lt x3 in
-      assert (getmax (insert x4 (insert x3 (insert x2 (insert x empty)))) = x)
+      assert (getmax (insert x4 (insert x3 (insert x2 (insert x empty)))) = x);
+      assert (getmax (insert x (insert x3 (insert x2 (insert x4 empty)))) = x);
+      assert (getmax (insert x (insert x2 (insert x3 (insert x4 empty)))) = x);
+      assert (getmax (insert x2 (insert x4 (insert x (insert x3 empty)))) = x)
        
     let test_getmin () =
       let x = C.generate () in
       let x2 = C.generate_gt x in
       let x3 = C.generate_gt x2 in
       let x4 = C.generate_gt x3 in
-      assert (getmin (insert x2 (insert x4 (insert x (insert x3 empty)))) = x)
+      assert (getmin (insert x2 (insert x4 (insert x (insert x3 empty)))) = x);
+      assert (getmin (insert x4 (insert x3 (insert x2 (insert x empty)))) = x);
+      assert (getmin (insert x (insert x3 (insert x2 (insert x4 empty)))) = x);
+      assert (getmin (insert x (insert x2 (insert x3 (insert x4 empty)))) = x)
        
     let test_delete () =
       let x = C.generate () in
