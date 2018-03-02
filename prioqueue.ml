@@ -82,6 +82,7 @@ module ListQueue (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
     let is_empty (q : queue) : bool =
       q = empty
 
+    (* Adds elt to queue so that it's behind preexisting values < or = to it *)  
     let rec add (e : elt) (q : queue) : queue =
       match q with
       | [] -> [e]
@@ -415,25 +416,26 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
         match tr with 
         | Leaf _ -> Leaf element
         | OneBranch(_, e2) -> OneBranch(element, e2)
-        | TwoBranch(b, _, t1, t2) -> TwoBranch(b, element, t1, t2) in
+        | TwoBranch(b, _, t1, t2) -> TwoBranch(b, element, t1, t2) 
+      in
       match t with 
       | Leaf e1 -> Leaf e1
       | OneBranch(e1, e2) ->
-                 (match C.compare e1 e2 with
-                  | Equal | Less -> OneBranch(e1, e2)
-                  | Greater -> OneBranch(e2, e1))
+          (match C.compare e1 e2 with
+           | Equal | Less -> OneBranch(e1, e2)
+           | Greater -> OneBranch(e2, e1))
       | TwoBranch(b, e1, t1, t2) ->
-                 match C.compare (get_top t1) (get_top t2) with 
-                  | Equal | Less ->
-                    (match C.compare e1 (get_top t1) with                      
-                     | Equal | Less -> TwoBranch(b, e1, t1, t2)
-                     | Greater ->
-                         TwoBranch(b, get_top t1, fix (replace_top e1 t1), t2))
-                  | Greater ->
-                    (match C.compare e1 (get_top t2) with                      
-                     | Equal | Less -> TwoBranch(b, e1, t1, t2)
-                     | Greater ->
-                         TwoBranch(b, get_top t2, t1, fix(replace_top e1 t2)))
+          match C.compare (get_top t1) (get_top t2) with 
+          | Equal | Less ->
+              (match C.compare e1 (get_top t1) with                      
+               | Equal | Less -> TwoBranch(b, e1, t1, t2)
+               | Greater ->
+                   TwoBranch(b, get_top t1, fix (replace_top e1 t1), t2))
+          | Greater ->
+              match C.compare e1 (get_top t2) with                      
+              | Equal | Less -> TwoBranch(b, e1, t1, t2)
+              | Greater ->
+                  TwoBranch(b, get_top t2, t1, fix(replace_top e1 t2))
 
     let test_fix () =
       let x = C.generate () in
@@ -471,7 +473,7 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
       assert (fix (TwoBranch(Odd, z, Leaf y, Leaf x)) 
         = (TwoBranch(Odd, z, Leaf y, Leaf x)));        
       assert (fix (TwoBranch (Even, y, OneBranch(x, y), OneBranch(z, z))) 
-          = TwoBranch(Even, z, OneBranch(x, y), OneBranch(z, y)));
+        = TwoBranch(Even, z, OneBranch(x, y), OneBranch(z, y)));
       assert (fix (TwoBranch(Odd, x, OneBranch(z, y), Leaf y)) 
         = TwoBranch(Odd, z, OneBranch(x, y), Leaf y))
 
@@ -504,6 +506,8 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
           (match q2' with
           | Empty -> last, Tree (OneBranch (e1, get_top t1))
           | Tree t2' -> last, Tree (TwoBranch(Odd, e1, t1, t2')))
+      (* Since the resulting queue of get_last can't be Empty in the
+         TwoBranch odd case, a match statement isn't required *)
       | TwoBranch(Odd, e1, t1, t2) -> 
           let last, q1' = get_last t1 in
           last, Tree (TwoBranch(Even, e1, extract_tree q1', t2))
