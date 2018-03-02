@@ -549,16 +549,16 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
          most recently inserted item, and then fixes the tree that
          results if it is violating the strong invariant *)
       | TwoBranch (Even, e, t1, t2) ->
-         let (last, q2') = get_last t2 in
+         let last, q2' = get_last t2 in
          (match q2' with
           (* If one branch of the tree was just a leaf, we now have
              just a OneBranch *)
-          | Empty -> (e, Tree (fix (OneBranch (last, get_top t1))))
-          | Tree t2' -> (e, Tree (fix (TwoBranch (Odd, last, t1, t2')))))
+          | Empty -> e, Tree (fix (OneBranch (last, get_top t1)))
+          | Tree t2' -> e, Tree (fix (TwoBranch (Odd, last, t1, t2'))))
       (* Implement the odd case! *)
       | TwoBranch (Odd, e, t1, t2) ->
-         let (last, q1') = get_last t1 in
-         (e, Tree (fix (TwoBranch (Even, last, extract_tree q1', t2))))
+         let last, q1' = get_last t1 in
+         e, Tree (fix (TwoBranch (Even, last, extract_tree q1', t2)))
 
     let rec size (t: tree) : bool =
       let rec subtree_size subtree =
@@ -570,8 +570,10 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
       match t with
       | Leaf _ -> true
       | OneBranch(_, _) -> true
-      | TwoBranch(Odd, _, t1, t2) -> subtree_size t1 = (subtree_size t2 + 1) && size t1 && size t2
-      | TwoBranch(Even, _, t1, t2) -> subtree_size t1 = subtree_size t2 && size t1 && size t2
+      | TwoBranch(Odd, _, t1, t2) -> 
+          subtree_size t1 = (subtree_size t2 + 1) && size t1 && size t2
+      | TwoBranch(Even, _, t1, t2) -> 
+          subtree_size t1 = subtree_size t2 && size t1 && size t2
 
     let test_take () =
       let x = C.generate () in
@@ -592,9 +594,10 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
       assert (take (Tree (TwoBranch(Odd, x, 
                        OneBranch(x2, x3), Leaf x4))) 
         = (x, Tree (TwoBranch (Even, x2, Leaf x3, Leaf x4))));
-      assert (take (Tree (TwoBranch(Odd, x, TwoBranch(Even, x2, Leaf x4, Leaf x3),
-                       OneBranch(x2, x4)))) 
-        = (x, Tree (TwoBranch (Even, x2, OneBranch(x3, x4), OneBranch(x2, x4)))))
+      assert (take (Tree (TwoBranch(Odd, x, TwoBranch(Even, x2, Leaf x4, 
+                            Leaf x3), OneBranch(x2, x4))))
+        = (x, Tree (TwoBranch (Even, x2, OneBranch(x3, x4), 
+                      OneBranch(x2, x4)))))
 
     let run_tests () = 
       test_get_top ();
