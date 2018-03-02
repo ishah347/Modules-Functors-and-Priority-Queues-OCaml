@@ -595,13 +595,17 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
       assert (size (extract_tree q));
       assert (take (add x2 (add x (add x3 empty))) 
         = (x, add x3 (add x2 empty))); 
-      assert (take (Tree (TwoBranch(Odd, x, 
-                       OneBranch(x2, x3), Leaf x4))) 
-        = (x, Tree (TwoBranch (Even, x2, Leaf x3, Leaf x4))));
-      assert (take (Tree (TwoBranch(Odd, x, TwoBranch(Even, x2, Leaf x4, 
-                            Leaf x3), OneBranch(x2, x4))))
-        = (x, Tree (TwoBranch (Even, x2, OneBranch(x3, x4), 
-                      OneBranch(x2, x4)))))
+      let t = take (Tree (TwoBranch(Odd, x, 
+                            OneBranch(x2, x3), Leaf x4))) in
+      assert (t = (x, Tree (TwoBranch (Even, x2, Leaf x3, Leaf x4))));
+      let _, q = t in
+      assert (size (extract_tree q));
+      let t = take (Tree (TwoBranch(Odd, x, TwoBranch(Even, x2, Leaf x4, 
+                            Leaf x3), OneBranch(x2, x4)))) in
+      assert (t = (x, Tree (TwoBranch (Even, x2, OneBranch(x3, x4), 
+                              OneBranch(x2, x4)))));
+      let _, q = t in
+      assert (size (extract_tree q))
 
     let run_tests () = 
       test_get_top ();
