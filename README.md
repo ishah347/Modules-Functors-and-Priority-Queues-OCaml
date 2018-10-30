@@ -1,4 +1,5 @@
 
-## ps4
+## Modules-Functors-and-Priority-Queues-OCaml
 
-See pset4.pdf for assignment instructions.
+Using modules to create data structure interfaces with useful abstractions such as ordered collections
+and priority queues.
